@@ -1,0 +1,21 @@
+<mvc:View controllerName="money.controller.Page" 
+    xmlns:mvc="sap.ui.core.mvc"
+	displayBlock="true"
+    xmlns="sap.m"
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.ui.layout.form"
+	xmlns:ux="sap.uxap"
+	xmlns:core="sap.ui.core"
+    >
+    <Page id="page" title="{i18n>title}">
+        <content>
+          <core:Fragment fragmentName="money.view.Fragments.Head" type="XML"/>
+		  <core:Fragment fragmentName="money.view.Fragments.Item" type="XML"/>
+        </content>
+        <footer>
+        <OverflowToolbar>
+        <Button text="{pageModel>/buttonText}" type="Emphasized" press="onSave"></Button>
+        </OverflowToolbar>
+        </footer>
+    </Page>
+</mvc:View>

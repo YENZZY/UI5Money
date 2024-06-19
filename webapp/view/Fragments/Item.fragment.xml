@@ -1,0 +1,65 @@
+<core:FragmentDefinition
+    xmlns:core="sap.ui.core"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:m="sap.m"
+    xmlns:u="sap.ui.unified"
+    xmlns:layout="sap.ui.layout"
+    xmlns="sap.ui.table"
+    xmlns:uxap="sap.uxap"
+  height="100%">
+    <m:VBox>
+        <Table
+				rows="{itemModel>/}"
+				rowActionCount="1"
+				id="table"
+				selectionMode="Single">
+				<extension>
+					<m:OverflowToolbar style="Clear">
+						<m:Title id="title" text="가계부"/>
+                        <m:ToolbarSpacer></m:ToolbarSpacer>
+                        <m:Button text="생성" press="onCreate" type="Emphasized"></m:Button>
+						<m:Button text="삭제" press="onDelete"></m:Button>
+					</m:OverflowToolbar>
+				</extension>
+				<rowActionTemplate>
+					<RowAction>
+						<RowActionItem type="Navigation" press="onMove">
+						</RowActionItem>
+					</RowAction>
+				</rowActionTemplate>
+				<columns>
+					<Column width="6rem" hAlign="End">
+						<m:Label text="구분" />
+						<template>
+							<m:Select
+								selectedKey="{itemModel>Type}"
+								editable="{pageModel>/editable}"
+								items="{
+									path: 'selectModel>/'
+								}">
+								<core:Item key="{selectModel>Key}" text="{selectModel>Text}" />
+							</m:Select>	
+						</template>
+					</Column>
+					<Column width="11rem">
+						<m:Label text="제목"/>
+						<template>
+			            	<m:Input value="{itemModel>Title}" editable="{pageModel>/editable}"/>
+						</template>
+					</Column>
+                    <Column width="11rem">
+						<m:Label text="내용"/>
+						<template>
+			            	<m:Input value="{itemModel>Content}" editable="{pageModel>/editable}"/>
+						</template>
+					</Column>
+					<Column width="9rem">
+						<m:Label text="금액" />
+						<template>
+				            <m:Input value="{itemModel>Amount}" editable="{pageModel>/editable}"/>
+						</template>
+					</Column>
+				</columns>
+			</Table>
+    </m:VBox>
+</core:FragmentDefinition>
