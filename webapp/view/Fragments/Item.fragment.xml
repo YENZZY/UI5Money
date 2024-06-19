@@ -21,12 +21,6 @@
 						<m:Button text="삭제" press="onDelete"></m:Button>
 					</m:OverflowToolbar>
 				</extension>
-				<rowActionTemplate>
-					<RowAction>
-						<RowActionItem type="Navigation" press="onMove">
-						</RowActionItem>
-					</RowAction>
-				</rowActionTemplate>
 				<columns>
 					<Column width="6rem" hAlign="End">
 						<m:Label text="구분" />
