@@ -1,8 +1,9 @@
 sap.ui.define([
     "money/controller/BaseController",
-    "sap/ui/model/json/JSONModel"
+    "sap/ui/model/json/JSONModel",
+    "sap/m/MessageBox"
 ],
-function (Controller, JSONModel) {
+function (Controller, JSONModel, MessageBox) {
     "use strict";
 
     // 라우터 설정: "Main" 페이지가 로드될 때 _onRouteMatched 함수 호출
@@ -65,25 +66,33 @@ function (Controller, JSONModel) {
         },
 
         // 삭제 테이블에서 선택된 행의 데이터를 삭제하고, 삭제 후 데이터를 다시 가져옴
-        onDelete : function(oEvent){
-
-            // 테이블에서 선택된 인덱스 얻기
-            var index =this.byId("table").getSelectedIndex(); //1개일 시 여러개는 ~indices
+        onDelete: function (oEvent) {
+            var oTable = this.byId("table");
+            var aSelectedIndices = oTable.getSelectedIndices();
             var getData = this.getModel("dataModel").getData();
-            var oRowData = getData[index];
             var oMainModel = this.getOwnerComponent().getModel();
 
-            var param = "/Head(guid'" + oRowData.Uuid + "')";
-            this._getODataDelete(oMainModel, param).done(function(aReturn){
-                
-                // 삭제 성공 시 데이터 다시 가져오기
-                this._getData();
-            
-            }.bind(this)).fail(function(){
-                // chk = false;  삭제 실패 시 처리
-            }).always(function(){
-                // 항상 실행되는 함수
+            if (aSelectedIndices.length === 0) {
+                MessageBox.information("선택된 항목이 없습니다.");
+                return;
+            }
+
+            // 선택된 행의 데이터를 삭제하는 함수
+            var aDeletePromises = aSelectedIndices.map(function(index) {
+                var oRowData = getData[index]; // 선택된 각 행의 데이터를 가져옴
+                var param = "/Head(Uuid=guid'" + oRowData.Uuid + "')"; // OData 삭제 요청을 위한 URL 파라미터 생성
+                return this._getODataDelete(oMainModel, param); // OData 삭제 요청을 비동기로 수행하고, 해당 프로미스를 반환
+            }.bind(this));
+
+            // 모든 삭제 요청이 완료되면 실행되는 코드
+            Promise.all(aDeletePromises).then(function() {
+                this._getData(); // 데이터 다시 가져오기
+                MessageBox.success("삭제 성공");
+            }.bind(this)).catch(function() {
+                MessageBox.error("삭제 실패");
+            }).finally(function() {
+                // 항상 실행되는 코드
             });
-        }
+        },
     });
 });

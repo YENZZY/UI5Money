@@ -12,13 +12,13 @@
 				rows="{itemModel>/}"
 				rowActionCount="1"
 				id="table"
-				selectionMode="Single">
+				selectionMode="Multi">
 				<extension>
 					<m:OverflowToolbar style="Clear">
 						<m:Title id="title" text="가계부"/>
                         <m:ToolbarSpacer></m:ToolbarSpacer>
-                        <m:Button text="생성" press="onCreate" type="Emphasized"></m:Button>
-						<m:Button text="삭제" press="onDelete"></m:Button>
+                        <m:Button text="생성" press="onCreate" type="Emphasized" enabled="{pageModel>/createEnabled}"></m:Button>
+						<m:Button text="삭제" press="onDelete" enabled="{pageModel>/deleteEnabled}"></m:Button>
 					</m:OverflowToolbar>
 				</extension>
 				<columns>
