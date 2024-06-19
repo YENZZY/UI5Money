@@ -138,23 +138,67 @@ function (Controller, JSONModel, Filter) {
         },
 
         // 데이터 가져오는 메서드
+     
         getData: function () {
             var oMainModel = this.getOwnerComponent().getModel();  
             var aFilter = [];
             aFilter.push(new Filter("Uuid", "EQ", this.Uuid)); // Uuid 필터 추가
+        
+            console.log("UUID: ", this.Uuid);
+        
+            oMainModel.read("/Head", {
+                filters: aFilter,
+                urlParameters: {
+                    "$expand": "to_Item"
+                },
+                success: function (oData) {
+                    
+                    if (oData && oData.results && oData.results.length > 0) {
+                        var oHeadData = oData.results[0];
+                        console.log("Head Data: ", oHeadData);
+                        console.log("Item Data: ", oHeadData.to_Item);
 
-            this._getODataRead(oMainModel, "/Head", aFilter).done(function (aGetData) {
-       
-                this.setModel(new JSONModel(aGetData[0]), "headModel"); // 가져온 데이터를 headModel에 설정
-                this.setModel(new JSONModel(aGetData[0].to_Item), "itemModel"); // item 데이터를 itemModel에 설정
-                console.log(headModel);
-                console.log(itemModel);
-            }.bind(this)).fail(function () {
-          
-                MessageBox.information("Read Fail"); // 데이터 읽기 실패 처리
-         
-            }).always(function () {
-                // 항상 실행되는 로직
+                        // oHeadData의 Yearmonth 속성명을 dateVar로 변경하고 Date 타입으로 변환
+                    if (oHeadData.hasOwnProperty('Yearmonth')) {
+                        var yearmonth = oHeadData.Yearmonth;
+
+                        // yearmonth 문자열을 연도와 월로 분리
+                        if (yearmonth.length === 6) {
+                            var year = parseInt(yearmonth.substring(0, 4), 10);
+                            var month = parseInt(yearmonth.substring(4, 6), 10) - 1; // 월은 0부터 시작하므로 -1
+
+                            // Date 객체 생성
+                            var dateVar = new Date(year, month);
+                            oHeadData.dateVar = dateVar;
+                        }
+                    }
+
+                       // 끝
+                        this.setModel(new JSONModel(oHeadData), "headModel");
+                        if (oHeadData.to_Item && oHeadData.to_Item.results) {
+                            this.setModel(new JSONModel(oHeadData.to_Item.results), "itemModel");
+                        }
+                    }
+                }.bind(this),
+                error: function (oError) {
+                    console.error("Read Fail", oError);
+                }
+            });
+        },
+                // 데이터 삭제 메서드
+        onDelete: function (oEvent) {
+            var oMainModel = this.getOwnerComponent().getModel();
+            var sPath = oEvent.getSource().getBindingContext("itemModel").getPath();
+            var oDataToDelete = this.getModel("itemModel").getProperty(sPath);
+        
+            var sDeleteUrl = "/Head(guid'" + oDataToDelete.Uuid + "')";
+        
+            this._getODataDelete(oMainModel, sDeleteUrl).then(function (oReturn) {
+                console.log("삭제 성공");
+                // 삭제 후 로직 추가 (예: 목록 갱신)
+                this.getData(); // 데이터 재로드
+            }.bind(this)).catch(function (oError) {
+                console.error("삭제 실패", oError);
             });
         }
     });

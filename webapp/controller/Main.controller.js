@@ -73,7 +73,7 @@ function (Controller, JSONModel) {
             var oRowData = getData[index];
             var oMainModel = this.getOwnerComponent().getModel();
 
-            var param = "/Head(guid'" + oRowData.Uuid + "')?$expand=to_Item";
+            var param = "/Head(guid'" + oRowData.Uuid + "')";
             this._getODataDelete(oMainModel, param).done(function(aReturn){
                 
                 // 삭제 성공 시 데이터 다시 가져오기
