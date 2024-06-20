@@ -145,50 +145,22 @@ function (Controller, JSONModel, Filter,MessageBox) {
 },
         // 저장 버튼 클릭 시 호출되는 메서드
         onSave: function () {
-
-            if(this.editFlag) {
-
+            if (this.editFlag) {
                 var oMainModel = this.getOwnerComponent().getModel();
                 var headData = this.getModel("headModel").getData();
                 var itemData = this.getModel("itemModel").getData();
-
+        
                 delete headData.dateVar;
-                
-
-                // getData['Unit'] = 'KRW';
-                
-        //         //삭제
-        //         // 삭제할 항목들을 순회하며 삭제 작업을 수행합니다.
-        // this._deleteIndices.forEach(function (index) {
-        //     var oRowData = itemData[index];
-        //     if (oRowData.Parentsuuid === headData.Uuid) {
-        //         var param = oRowData.__metadata.uri.substring(oRowData.__metadata.uri.indexOf("/Item("));
-        //         this._getODataDelete(oMainModel, param).then(function () {
-        //             // 성공적으로 삭제되었을 때의 처리
-        //         }.bind(this)).catch(function (err) {
-        //             // 삭제 실패 시 처리
-        //         });
-        //     }
-        // }.bind(this));
-
-        // // 저장 후 초기화 작업 등을 수행합니다.
-        // this._deleteIndices = []; // 삭제 인덱스 초기화
-        // this.getData(); // 데이터 다시 가져오기
-        //             //삭제 끝
-
-                if(this.Uuid){ // 수정 후 저장시 업데이트
-                    
+        
+                if (this.Uuid) { // 수정 후 저장 시 업데이트
                     delete headData.to_Item;
-                    // Head의 metadata에서 URI를 추출
                     var headUri = headData.__metadata.uri;
                     var startIndex = headUri.indexOf("/Head");
                     var extractedUri = headUri.substring(startIndex);
-
-                    //  Uuid 값이 들어간 uri 경로
                     var param = extractedUri;
-                  
-                    this._getODataUpdate(oMainModel, param, headData).done(function(aReturn){
-
+        
+                    this._getODataUpdate(oMainModel, param, headData).done(function(aReturn) {
+                       
                         itemData.forEach(item => {
                             if (item.Uuid) {
                                 var itemUri = item.__metadata.uri.substring(item.__metadata.uri.indexOf("/Item("));
@@ -211,15 +183,101 @@ function (Controller, JSONModel, Filter,MessageBox) {
                                 });
                             }
                         });
-                        
-        
-                    this.navTo("Main", {});
 
-                    }.bind(this)).fail(function(){
-                        
-                    }).always(function(){
+                       //삭제 구현
+                        var aUpdatePromises = itemData.map(function(item) {
+                            if (item.Uuid) {
+                                var itemUri = item.__metadata.uri.substring(item.__metadata.uri.indexOf("/Item("));
+                                return this._getODataUpdate(oMainModel, itemUri, item);
+                            }
+                        }.bind(this));
         
+                        // 삭제할 항목을 실제로 삭제하는 프로미스 배열을 추가합니다.
+                        var aDeletePromises = (this.aItemsToDelete || []).map(function(oRowData) {
+                            var param = oRowData.__metadata.uri.substring(oRowData.__metadata.uri.indexOf("/Item("));
+                            return this._getODataDelete(oMainModel, param);
+                        }.bind(this));
+                        var flag;
+                        var oBundle = this.getResourceBundle();
+                        var msg;
+                        // 모든 업데이트와 삭제 요청을 병렬로 처리합니다.
+                        Promise.all(aUpdatePromises.concat(aDeletePromises)).then(function() {
+                            this.getData(); // 데이터 다시 가져오기
+                            this._setModel();
+                            MessageBox.success("저장 성공");
+                        }.bind(this)).catch(function(oError) {
+                            var sErrorMessage = "저장 실패";
+                            if (oError && oError.responseText) {
+                                try {
+                                    var oErrorResponse = JSON.parse(oError.responseText);
+                                    sErrorMessage = oErrorResponse.error.message.value || sErrorMessage;
+                                } catch (e) {
+                                    // JSON 파싱 에러가 발생하면 기본 메시지 사용
+                                }
+                            }
+                            MessageBox.error(sErrorMessage);
+                        });
+        
+                    }.bind(this)).fail(function(err) {
+                        MessageBox.error("헤드 업데이트 실패");
                     });
+                
+        // onSave: function () {
+
+        //     if(this.editFlag) {
+
+        //         var oMainModel = this.getOwnerComponent().getModel();
+        //         var headData = this.getModel("headModel").getData();
+        //         var itemData = this.getModel("itemModel").getData();
+
+        //         delete headData.dateVar;
+                
+        //         // getData['Unit'] = 'KRW';
+
+        //         if(this.Uuid){ // 수정 후 저장시 업데이트
+                    
+        //             delete headData.to_Item;
+        //             // Head의 metadata에서 URI를 추출
+        //             var headUri = headData.__metadata.uri;
+        //             var startIndex = headUri.indexOf("/Head");
+        //             var extractedUri = headUri.substring(startIndex);
+
+        //             //  Uuid 값이 들어간 uri 경로
+        //             var param = extractedUri;
+                  
+        //             this._getODataUpdate(oMainModel, param, headData).done(function(aReturn){
+
+        //                 itemData.forEach(item => {
+        //                     if (item.Uuid) {
+        //                         var itemUri = item.__metadata.uri.substring(item.__metadata.uri.indexOf("/Item("));
+        //                         this._getODataUpdate(oMainModel, itemUri, item).done(function(aReturn) {   
+        //                             // 성공 시 처리할 코드
+        //                         }.bind(this)).fail(function(err) {
+        //                             // 실패 시 처리할 코드
+        //                         }).always(function() {
+        //                             // 항상 실행될 코드
+        //                         });
+        //                     } else {
+        //                         item.Parentsuuid = headData.Uuid;
+        //                         var newUri = param + "/to_Item";
+        //                         this._getODataCreate(oMainModel, newUri, item).done(function(aReturn) {   
+        //                             // 성공 시 처리할 코드
+        //                         }.bind(this)).fail(function(err) {
+        //                             // 실패 시 처리할 코드
+        //                         }).always(function() {
+        //                             // 항상 실행될 코드
+        //                         });
+        //                     }
+        //                 });
+                        
+        
+        //             this.navTo("Main", {});
+
+        //             }.bind(this)).fail(function(){
+                        
+        //             }).always(function(){
+        
+        //             });
 
                 } else { // 메인화면에서 생성하는 모드
                     var yearmonth = headData.Yearmonth;
@@ -290,7 +348,6 @@ function (Controller, JSONModel, Filter,MessageBox) {
             var oTable = this.byId("table");
             var aSelectedIndices = oTable.getSelectedIndices();
             var itemData = this.getModel("itemModel").getData();
-            var oMainModel = this.getOwnerComponent().getModel();
             var headData = this.getModel("headModel").getData(); // head의 데이터를 가져옴
         
             if (aSelectedIndices.length === 0) {
@@ -298,57 +355,73 @@ function (Controller, JSONModel, Filter,MessageBox) {
                 return;
             }
         
-            // 선택된 행의 데이터를 삭제하는 함수
-            var aDeletePromises = aSelectedIndices.map(function(index) {
+            // 삭제할 항목을 임시로 저장할 배열을 초기화합니다.
+            if (!this.aItemsToDelete) {
+                this.aItemsToDelete = [];
+            }
+        
+            // 선택된 행의 데이터를 삭제할 항목 배열에 추가합니다.
+            aSelectedIndices.forEach(function(index) {
                 var oRowData = itemData[index]; // 선택된 각 행의 데이터를 가져옴
         
                 // head의 Uuid와 item의 Parentsuuid를 비교
                 if (oRowData.Parentsuuid === headData.Uuid) {
-                    var param = oRowData.__metadata.uri.substring(oRowData.__metadata.uri.indexOf("/Item(")); // OData 삭제 요청을 위한 URL 파라미터 생성
-                    console.log(param);
-                    return this._getODataDelete(oMainModel, param); // OData 삭제 요청을 비동기로 수행하고, 해당 프로미스를 반환
-                } else {
-                    return Promise.resolve(); // 비교 결과가 일치하지 않으면 빈 프로미스 반환
+                    this.aItemsToDelete.push(oRowData); // 삭제할 항목 배열에 추가
                 }
             }.bind(this));
         
-            // 모든 삭제 요청이 완료되면 실행되는 코드
-            Promise.all(aDeletePromises).then(function() {
-                this.getData(); // 데이터 다시 가져오기
-                MessageBox.success("삭제 성공");
-            }.bind(this)).catch(function(oError) {
-                var sErrorMessage = "삭제 실패";
-                if (oError && oError.responseText) {
-                    try {
-                        var oErrorResponse = JSON.parse(oError.responseText);
-                        sErrorMessage = oErrorResponse.error.message.value || sErrorMessage;
-                    } catch (e) {
-                        // JSON 파싱 에러가 발생하면 기본 메시지 사용
-                    }
-                }
-                MessageBox.error(sErrorMessage);
-            }).finally(function() {
-                // 항상 실행되는 코드
+            // 선택된 행을 테이블에서 제거합니다.
+            aSelectedIndices.reverse().forEach(function(index) {
+                itemData.splice(index, 1);
             });
-        }    
         
-        // //삭제
+            this.getModel("itemModel").refresh(); // 모델을 갱신하여 테이블 업데이트
+        }        
+
         // onDelete: function (oEvent) {
         //     var oTable = this.byId("table");
         //     var aSelectedIndices = oTable.getSelectedIndices();
         //     var itemData = this.getModel("itemModel").getData();
-        //     var headData = this.getModel("headModel").getData();
+        //     var oMainModel = this.getOwnerComponent().getModel();
+        //     var headData = this.getModel("headModel").getData(); // head의 데이터를 가져옴
         
         //     if (aSelectedIndices.length === 0) {
         //         MessageBox.information("선택된 항목이 없습니다.");
         //         return;
         //     }
         
-        //     // 삭제할 항목들의 인덱스를 기록해둡니다.
-        //     this._deleteIndices = aSelectedIndices.slice();
+        //     // 선택된 행의 데이터를 삭제하는 함수
+        //     var aDeletePromises = aSelectedIndices.map(function(index) {
+        //         var oRowData = itemData[index]; // 선택된 각 행의 데이터를 가져옴
         
-        //     // 삭제 버튼만 눌렀을 때는 UI에서만 선택 항목이 제거되도록 설정합니다.
-        //     // 실제 데이터 삭제는 저장 버튼을 눌렀을 때 이루어집니다.
-        // },
+        //         // head의 Uuid와 item의 Parentsuuid를 비교
+        //         if (oRowData.Parentsuuid === headData.Uuid) {
+        //             var param = oRowData.__metadata.uri.substring(oRowData.__metadata.uri.indexOf("/Item(")); // OData 삭제 요청을 위한 URL 파라미터 생성
+        //             console.log(param);
+        //             return this._getODataDelete(oMainModel, param); // OData 삭제 요청을 비동기로 수행하고, 해당 프로미스를 반환
+        //         } else {
+        //             return Promise.resolve(); // 비교 결과가 일치하지 않으면 빈 프로미스 반환
+        //         }
+        //     }.bind(this));
+        
+        //     // 모든 삭제 요청이 완료되면 실행되는 코드
+        //     Promise.all(aDeletePromises).then(function() {
+        //         this.getData(); // 데이터 다시 가져오기
+        //         MessageBox.success("삭제 성공");
+        //     }.bind(this)).catch(function(oError) {
+        //         var sErrorMessage = "삭제 실패";
+        //         if (oError && oError.responseText) {
+        //             try {
+        //                 var oErrorResponse = JSON.parse(oError.responseText);
+        //                 sErrorMessage = oErrorResponse.error.message.value || sErrorMessage;
+        //             } catch (e) {
+        //                 // JSON 파싱 에러가 발생하면 기본 메시지 사용
+        //             }
+        //         }
+        //         MessageBox.error(sErrorMessage);
+        //     }).finally(function() {
+        //         // 항상 실행되는 코드
+        //     });
+        // }    
     });
 });
