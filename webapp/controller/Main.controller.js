@@ -20,51 +20,72 @@ function (Controller, JSONModel, MessageBox, Filter) {
             this._getData();
         },
 
-        _getData: async function () {
-            var oMainModel = this.getOwnerComponent().getModel();
-        
-            try {
-                // Head 엔티티의 데이터를 비동기적으로 읽어옴, await 비동기 호출이 완료될 때까지 기다림
-                var aGetData = await this._getODataRead(oMainModel, "/Head");
-                    // console.log(aGetData); // 데이터 읽기 완료 후 로그 출력
+        _getData: function () { 
+            
+            var oMainModel = this.getOwnerComponent().getModel(); // 메인 모델 가져오기 //다른 데이터 가져올때 getModel(돈)이런 식
+
+            this._getODataRead(oMainModel, "/Head").done(
                 
-                // 각 항목에 대해 순차적으로 처리
-                for (var item of aGetData) {
-                  //  console.log("Processing item:", item); // 각 항목을 순차적으로 처리
-                    
-                    // to_Item의 원본 URI 가져오기
-                    var readContext = item.to_Item.__deferred.uri.substring(item.to_Item.__deferred.uri.indexOf("/Head"));
-                        // console.log("uri", readContext);
-                    // 필터 설정
-                    var aFilter = [];
-                    // URL 파라미터 설정 (Amount 속성만 선택)
-                    var oParameters = {
-                        "$select": "Amount"
-                    };
-                    
-                    // 각 항목에 대해 OData 읽기 요청을 비동기적으로 처리
-                    var data = await this._getODataRead(oMainModel, readContext, aFilter, oParameters);
-                        //console.log("Read data for item:", data); // 각 항목에 대해 데이터 읽기 완료 후 로그 출력
-        
-                    // to_Item의 amount 값을 찾아 더하기
-                    var totalAmount = 0; // 각 항목마다 totalAmount 초기화
-                    if (data && Array.isArray(data)) { //배열인지 확인
-                        data.forEach(function(subItem) {
-                            if (subItem.Amount) {
-                                totalAmount += parseFloat(subItem.Amount); // Amount 값을 숫자로 변환하여 합산
-                            }
-                        });
-                    }
-                    item.Amountsum = totalAmount; // 합산 값을 item.Amountsum에 저장
-                }
-        
-                // 모든 OData 읽기 요청이 완료된 후에 데이터 모델 설정
-                this.setModel(new JSONModel(aGetData), "dataModel");
+                function(aGetData){
+                    console.log("d",aGetData);
+                // 데이터 읽기 성공 시 JSON 모델로 설정 , JSON 모델 객체를 생성한 후, 이 데이터를 모델에 설정
+                this.setModel(new JSONModel(aGetData), "dataModel")
                 
-            } catch (error) {
+                // 데이터 읽기 실패 시 메시지 박스 표시
+            }.bind(this)).fail(function(){
                 MessageBox.information("Read Fail");
-            }
+            }).always(function(){
+                // 항상 실행되는 코드
+            });
+
         },
+
+
+        // _getData: async function () {
+        //     var oMainModel = this.getOwnerComponent().getModel();
+        
+        //     try {
+        //         // Head 엔티티의 데이터를 비동기적으로 읽어옴, await 비동기 호출이 완료될 때까지 기다림
+        //         var aGetData = await this._getODataRead(oMainModel, "/Head");
+        //             // console.log(aGetData); // 데이터 읽기 완료 후 로그 출력
+                
+        //         // 각 항목에 대해 순차적으로 처리
+        //         for (var item of aGetData) {
+        //           //  console.log("Processing item:", item); // 각 항목을 순차적으로 처리
+                    
+        //             // to_Item의 원본 URI 가져오기
+        //             var readContext = item.to_Item.__deferred.uri.substring(item.to_Item.__deferred.uri.indexOf("/Head"));
+        //                 // console.log("uri", readContext);
+        //             // 필터 설정
+        //             var aFilter = [];
+        //             // URL 파라미터 설정 (Amount 속성만 선택)
+        //             var oParameters = {
+        //                 "$select": "Amount"
+        //             };
+                    
+        //             // 각 항목에 대해 OData 읽기 요청을 비동기적으로 처리
+        //             var data = await this._getODataRead(oMainModel, readContext, aFilter, oParameters);
+        //                 //console.log("Read data for item:", data); // 각 항목에 대해 데이터 읽기 완료 후 로그 출력
+        
+        //             // to_Item의 amount 값을 찾아 더하기
+        //             var totalAmount = 0; // 각 항목마다 totalAmount 초기화
+        //             if (data && Array.isArray(data)) { //배열인지 확인
+        //                 data.forEach(function(subItem) {
+        //                     if (subItem.Amount) {
+        //                         totalAmount += parseFloat(subItem.Amount); // Amount 값을 숫자로 변환하여 합산
+        //                     }
+        //                 });
+        //             }
+        //             item.Amountsum = totalAmount; // 합산 값을 item.Amountsum에 저장
+        //         }
+        
+        //         // 모든 OData 읽기 요청이 완료된 후에 데이터 모델 설정
+        //         this.setModel(new JSONModel(aGetData), "dataModel");
+                
+        //     } catch (error) {
+        //         MessageBox.information("Read Fail");
+        //     }
+        // },
 
         // "Page" 페이지로 네비게이션
         onCreate: function (){

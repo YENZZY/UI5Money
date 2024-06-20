@@ -103,7 +103,7 @@ function (Controller, JSONModel, Filter,MessageBox) {
     var aFilter = [];
     aFilter.push(new Filter("Uuid", "EQ", this.Uuid)); // Uuid 필터 추가
 
-    console.log("UUID: ", this.Uuid);
+    //console.log("UUID: ", this.Uuid);
 
     oMainModel.read("/Head", {
         filters: aFilter,
@@ -135,14 +135,28 @@ function (Controller, JSONModel, Filter,MessageBox) {
                 this.setModel(new JSONModel(oHeadData), "headModel");
                 if (oHeadData.to_Item && oHeadData.to_Item.results) {
                     this.setModel(new JSONModel(oHeadData.to_Item.results), "itemModel");
+                    }
                 }
+            }.bind(this),
+            error: function (oError) {
+                console.error("Read Fail", oError);
             }
-        }.bind(this),
-        error: function (oError) {
-            console.error("Read Fail", oError);
-        }
-    });
-},
+        });
+    },
+        //AMOUNTSUM 계산
+    sumAmount: function () {
+        var oMainModel = this.getOwnerComponent().getModel();
+        var headData = this.getModel("headModel").getData();
+        var itemData = this.getModel("itemModel").getData();
+        var sAmount = 0 ;
+        console.log(itemData.Type);
+        // if(itemData.Type == "I"){
+        //      sAmount = sAmount + itemData.Amount;
+        // } else {
+        //      sAmount = sAmount - itemData.Amount;
+        // }
+    },
+
         // 저장 버튼 클릭 시 호출되는 메서드
         onSave: function () {
             if (this.editFlag) {
@@ -184,6 +198,23 @@ function (Controller, JSONModel, Filter,MessageBox) {
                             }
                         });
 
+                        // Item Amountsum 합산 처리
+                        var totalAmount = 0;
+                        itemData.forEach(function(item) {
+                            if (item.Type === "I") {
+                                totalAmount += item.Amount;
+                            } else {
+                                totalAmount -= item.Amount;
+                            }
+                        });
+
+                        // Head에 Amountsum 반영
+                        if (headData.Amountsum) {
+                            headData.Amountsum += totalAmount;
+                        } else {
+                            headData.Amountsum = totalAmount;
+                        }
+
                        //삭제 구현
                         var aUpdatePromises = itemData.map(function(item) {
                             if (item.Uuid) {
@@ -197,9 +228,7 @@ function (Controller, JSONModel, Filter,MessageBox) {
                             var param = oRowData.__metadata.uri.substring(oRowData.__metadata.uri.indexOf("/Item("));
                             return this._getODataDelete(oMainModel, param);
                         }.bind(this));
-                        var flag;
-                        var oBundle = this.getResourceBundle();
-                        var msg;
+                        
                         // 모든 업데이트와 삭제 요청을 병렬로 처리합니다.
                         Promise.all(aUpdatePromises.concat(aDeletePromises)).then(function() {
                             this.getData(); // 데이터 다시 가져오기
@@ -221,63 +250,6 @@ function (Controller, JSONModel, Filter,MessageBox) {
                     }.bind(this)).fail(function(err) {
                         MessageBox.error("헤드 업데이트 실패");
                     });
-                
-        // onSave: function () {
-
-        //     if(this.editFlag) {
-
-        //         var oMainModel = this.getOwnerComponent().getModel();
-        //         var headData = this.getModel("headModel").getData();
-        //         var itemData = this.getModel("itemModel").getData();
-
-        //         delete headData.dateVar;
-                
-        //         // getData['Unit'] = 'KRW';
-
-        //         if(this.Uuid){ // 수정 후 저장시 업데이트
-                    
-        //             delete headData.to_Item;
-        //             // Head의 metadata에서 URI를 추출
-        //             var headUri = headData.__metadata.uri;
-        //             var startIndex = headUri.indexOf("/Head");
-        //             var extractedUri = headUri.substring(startIndex);
-
-        //             //  Uuid 값이 들어간 uri 경로
-        //             var param = extractedUri;
-                  
-        //             this._getODataUpdate(oMainModel, param, headData).done(function(aReturn){
-
-        //                 itemData.forEach(item => {
-        //                     if (item.Uuid) {
-        //                         var itemUri = item.__metadata.uri.substring(item.__metadata.uri.indexOf("/Item("));
-        //                         this._getODataUpdate(oMainModel, itemUri, item).done(function(aReturn) {   
-        //                             // 성공 시 처리할 코드
-        //                         }.bind(this)).fail(function(err) {
-        //                             // 실패 시 처리할 코드
-        //                         }).always(function() {
-        //                             // 항상 실행될 코드
-        //                         });
-        //                     } else {
-        //                         item.Parentsuuid = headData.Uuid;
-        //                         var newUri = param + "/to_Item";
-        //                         this._getODataCreate(oMainModel, newUri, item).done(function(aReturn) {   
-        //                             // 성공 시 처리할 코드
-        //                         }.bind(this)).fail(function(err) {
-        //                             // 실패 시 처리할 코드
-        //                         }).always(function() {
-        //                             // 항상 실행될 코드
-        //                         });
-        //                     }
-        //                 });
-                        
-        
-        //             this.navTo("Main", {});
-
-        //             }.bind(this)).fail(function(){
-                        
-        //             }).always(function(){
-        
-        //             });
 
                 } else { // 메인화면에서 생성하는 모드
                     var yearmonth = headData.Yearmonth;
