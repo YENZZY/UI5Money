@@ -157,6 +157,25 @@ function (Controller, JSONModel, Filter,MessageBox) {
 
                 // getData['Unit'] = 'KRW';
                 
+        //         //삭제
+        //         // 삭제할 항목들을 순회하며 삭제 작업을 수행합니다.
+        // this._deleteIndices.forEach(function (index) {
+        //     var oRowData = itemData[index];
+        //     if (oRowData.Parentsuuid === headData.Uuid) {
+        //         var param = oRowData.__metadata.uri.substring(oRowData.__metadata.uri.indexOf("/Item("));
+        //         this._getODataDelete(oMainModel, param).then(function () {
+        //             // 성공적으로 삭제되었을 때의 처리
+        //         }.bind(this)).catch(function (err) {
+        //             // 삭제 실패 시 처리
+        //         });
+        //     }
+        // }.bind(this));
+
+        // // 저장 후 초기화 작업 등을 수행합니다.
+        // this._deleteIndices = []; // 삭제 인덱스 초기화
+        // this.getData(); // 데이터 다시 가져오기
+        //             //삭제 끝
+
                 if(this.Uuid){ // 수정 후 저장시 업데이트
                     
                     delete headData.to_Item;
@@ -203,28 +222,55 @@ function (Controller, JSONModel, Filter,MessageBox) {
                     });
 
                 } else { // 메인화면에서 생성하는 모드
-                    this._getODataCreate(oMainModel, "/Head", headData).done(function (aReturn) {
-                        var headUuid = aReturn.Uuid;
-                        console.log("uri!!", headUuid);
-                        // headData의 UUID를 itemData에 설정
-                        itemData.forEach(item => {
-                            item.Parentsuuid = headUuid;
-                            var newUri = "/Head(Uuid=guid'" + headUuid + "')/to_Item";
-                            this._getODataCreate(oMainModel, newUri, item).done(function (aReturn) {
-                                // 성공 시 처리할 코드
-                            }.bind(this)).fail(function (err) {
-                                // 실패 시 처리할 코드
-                            }).always(function () {
-                                // 항상 실행될 코드
-                            });
-                        });
-            
-                        this.navTo("Main", {});
+                    var yearmonth = headData.Yearmonth;
+                    var filter = new sap.ui.model.Filter("Yearmonth", "EQ", yearmonth);
+                    oMainModel.read("/Head", {
+                        filters: [filter],
+                        success: function(oData) {
+                            if (oData.results.length > 0) {
+                                // 기존 데이터가 있는 경우, 첫 번째 결과를 사용하여 아이템 생성 또는 업데이트
+                                var existingHeadData = oData.results[0];
+                                var headUuid = existingHeadData.Uuid;
+                                itemData.forEach(function(item) {
+                                    item.Parentsuuid = headUuid;
+                                    var newUri = "/Head(Uuid=guid'" + headUuid + "')/to_Item";
+                                    this._getODataCreate(oMainModel, newUri, item).done(function(aReturn) {
+                                        // 성공 시 처리할 코드
+                                    }.bind(this)).fail(function(err) {
+                                        // 실패 시 처리할 코드
+                                    }).always(function() {
+                                        // 항상 실행될 코드
+                                    });
+                                }.bind(this));
         
-                    }.bind(this)).fail(function () {
-                        // 생성 실패 처리 로직
-                    }).always(function () {
-                        // 항상 실행되는 로직
+                                this.navTo("Main", {});
+                            } else {
+                                // 기존 데이터가 없는 경우, 새로 생성
+                                this._getODataCreate(oMainModel, "/Head", headData).done(function(aReturn) {
+                                    var headUuid = aReturn.Uuid;
+                                    itemData.forEach(function(item) {
+                                        item.Parentsuuid = headUuid;
+                                        var newUri = "/Head(Uuid=guid'" + headUuid + "')/to_Item";
+                                        this._getODataCreate(oMainModel, newUri, item).done(function(aReturn) {
+                                            // 성공 시 처리할 코드
+                                        }.bind(this)).fail(function(err) {
+                                            // 실패 시 처리할 코드
+                                        }).always(function() {
+                                            // 항상 실행될 코드
+                                        });
+                                    }.bind(this));
+        
+                                    this.navTo("Main", {});
+                                }.bind(this)).fail(function() {
+                                    // 생성 실패 처리 로직
+                                }).always(function() {
+                                    // 항상 실행되는 로직
+                                });
+                            }
+                        }.bind(this),
+                        error: function(oError) {
+                            // 오류 처리
+                        }
                     });
                 }
 
@@ -284,6 +330,25 @@ function (Controller, JSONModel, Filter,MessageBox) {
             }).finally(function() {
                 // 항상 실행되는 코드
             });
-        }      
+        }    
+        
+        // //삭제
+        // onDelete: function (oEvent) {
+        //     var oTable = this.byId("table");
+        //     var aSelectedIndices = oTable.getSelectedIndices();
+        //     var itemData = this.getModel("itemModel").getData();
+        //     var headData = this.getModel("headModel").getData();
+        
+        //     if (aSelectedIndices.length === 0) {
+        //         MessageBox.information("선택된 항목이 없습니다.");
+        //         return;
+        //     }
+        
+        //     // 삭제할 항목들의 인덱스를 기록해둡니다.
+        //     this._deleteIndices = aSelectedIndices.slice();
+        
+        //     // 삭제 버튼만 눌렀을 때는 UI에서만 선택 항목이 제거되도록 설정합니다.
+        //     // 실제 데이터 삭제는 저장 버튼을 눌렀을 때 이루어집니다.
+        // },
     });
 });
