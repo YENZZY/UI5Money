@@ -172,7 +172,7 @@ function (Controller, JSONModel, Filter,MessageBox) {
                     var startIndex = headUri.indexOf("/Head");
                     var extractedUri = headUri.substring(startIndex);
                     var param = extractedUri;
-        
+                    
                     this._getODataUpdate(oMainModel, param, headData).done(function(aReturn) {
                        
                         itemData.forEach(item => {
@@ -201,10 +201,13 @@ function (Controller, JSONModel, Filter,MessageBox) {
                         // Item Amountsum 합산 처리
                         var totalAmount = 0;
                         itemData.forEach(function(item) {
+                            console.log(item.Type);
                             if (item.Type === "I") {
                                 totalAmount += item.Amount;
+                                console.log(totalAmount += item.Amount);
                             } else {
                                 totalAmount -= item.Amount;
+                                console.log(totalAmount -= item.Amount);
                             }
                         });
 
